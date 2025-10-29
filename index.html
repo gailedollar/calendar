@@ -25,7 +25,7 @@
         }
     </script>
     <!-- Embed Inter font (highly recommended for modern design) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <!-- Custom styles for the calendar grid -->
     <style>
         .calendar-grid {
@@ -218,14 +218,16 @@
                         currentUserId = 'anonymous';
                         userIdDisplay.textContent = currentUserId + ' (Anon)';
                         console.log("Signed in anonymously.");
-                        renderCalendar(); // Render even if anonymous
+                        // Even if anonymous, we should still try to render the empty calendar structure
+                        renderCalendar(); 
                     }
                 });
 
             } catch (error) {
                 console.error("Firebase Auth Error:", error);
                 userIdDisplay.textContent = 'ERROR';
-                alertUser("Authentication failed. Check console for details.");
+                // Use the custom alert function if a non-blocking message is preferred
+                // alertUser("Authentication failed. Check console for details."); 
             }
         }
         
@@ -276,7 +278,8 @@
                 renderCalendar(); // Re-render the calendar to show new event dots
             }, (error) => {
                 console.error("Firestore listen error:", error);
-                alertUser("Error loading events. Please check the console.");
+                // Use the custom alert function if a non-blocking message is preferred
+                // alertUser("Error loading events. Please check the console.");
             });
         }
         
@@ -291,7 +294,9 @@
         async function saveEvent(dateKey, title, description, startTime, endTime) {
             const eventsRef = getEventsCollectionRef();
             if (!eventsRef || !currentUserId) {
-                alertUser("Authentication is required to save events.");
+                // Use the custom alert function if a non-blocking message is preferred
+                // alertUser("Authentication is required to save events.");
+                console.error("Authentication is required to save events.");
                 return;
             }
 
@@ -314,7 +319,8 @@
                 
             } catch (e) {
                 console.error("Error adding document: ", e);
-                alertUser("Could not save event. Check console for details.");
+                // Use the custom alert function if a non-blocking message is preferred
+                // alertUser("Could not save event. Check console for details.");
             }
         }
         
@@ -342,7 +348,8 @@
 
             } catch (e) {
                 console.error("Error deleting document: ", e);
-                alertUser("Could not delete event. Check console for details.");
+                // Use the custom alert function if a non-blocking message is preferred
+                // alertUser("Could not delete event. Check console for details.");
             }
         }
 
@@ -353,7 +360,6 @@
          */
         function renderCalendar() {
             // FIX: Ensure the calendar content is cleared, even if the loading indicator is still technically visible.
-            // The loading indicator is visually hidden by the onSnapshot listener when data is received.
             calendarDates.innerHTML = '';
             
             // 1. Calculate key dates for the current view month
@@ -568,13 +574,14 @@
             if (dateKey && title && startTime && endTime) {
                 // Check for basic time validity (start must be before end)
                 if (startTime >= endTime) {
-                     alertUser("Start time must be before end time.");
+                     // Using console.error instead of alertUser to avoid header conflict
+                     console.error("Validation Error: Start time must be before end time."); 
                      return;
                 }
 
                 saveEvent(dateKey, title, description, startTime, endTime);
             } else {
-                alertUser("Event title, start time, and end time are required.");
+                console.error("Validation Error: Event title, start time, and end time are required.");
             }
         });
 
