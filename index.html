@@ -1,34 +1,593 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>My Live Website</title>
-    </head>
-    <body>
-        <!-- 
-            This is the main content of your first website! 
-            This is what people will see when they visit your URL.
-        -->
-        
-        <h1>🎉 Congratulations! You are now a Web Developer! 🎉</h1>
-        
-        <p>This page was published using GitHub Pages and is served over the public internet.</p>
-        
-        <h2>Next Steps: Adding Style (CSS)</h2>
-        
-        <p>Right now, this page looks simple because it only has HTML (the structure). Your next step is to learn CSS to make it look great!</p>
-        
-        <ul>
-            <li>**HTML** is the skeleton (structure).</li>
-            <li>**CSS** is the clothing and makeup (style).</li>
-        </ul>
-        
-        <a href="https://github.com" target="_blank">Check out the GitHub website</a>
-        
-        <!-- This is a placeholder image -->
-        <img src="https://placehold.co/400x200/4F46E5/ffffff?text=My+First+Website" alt="A simple placeholder image for the website">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Responsive Monthly Calendar</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Configure Tailwind for Inter font and colors -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#4f46e5', // Indigo-600
+                        'secondary': '#6366f1', // Indigo-500
+                        'text-dark': '#1f2937',
+                        'text-light': '#f9fafb',
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Embed Inter font (highly recommended for modern design) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Custom styles for the calendar grid -->
+    <style>
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 0.5rem;
+        }
+        /* Custom height for calendar cells to maintain aspect ratio on desktop */
+        .date-cell {
+            padding-top: 100%; /* Makes the height equal to the width */
+            position: relative;
+        }
+        .date-number {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            width: 100%;
+            height: 100%;
+        }
+        /* Style for the small event indicator dot */
+        .event-dot {
+            position: absolute;
+            bottom: 0.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 8px;
+            height: 8px;
+            background-color: #f59e0b; /* Amber-500 for visibility */
+            border-radius: 9999px; /* full circle */
+        }
+    </style>
+</head>
 
-    </body>
-    </html>
+<body class="bg-gray-50 font-sans min-h-screen p-4 sm:p-8 flex justify-center items-start">
+
+    <div id="calendar-app" class="w-full max-w-4xl bg-white shadow-2xl rounded-xl p-6 sm:p-8 transition-all duration-300">
+        
+        <!-- User ID Display (for multi-user testing) -->
+        <p class="text-xs text-gray-500 mb-4 text-center">
+            User ID: <span id="user-id-display" class="font-mono text-primary text-sm">Loading...</span>
+        </p>
+        
+        <!-- Header: Month and Year Display with Navigation -->
+        <header class="flex justify-between items-center mb-6">
+            <button id="prev-month" class="p-2 rounded-full text-text-dark hover:bg-gray-200 transition-colors">
+                <!-- Chevron Left Icon (lucide-react style) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <h1 id="month-year-display" class="text-3xl font-bold text-text-dark">
+                Loading...
+            </h1>
+            <button id="next-month" class="p-2 rounded-full text-text-dark hover:bg-gray-200 transition-colors">
+                <!-- Chevron Right Icon (lucide-react style) -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-6 h-6"><path d="m9 18 6-6-6-6"/></svg>
+            </button>
+        </header>
+
+        <!-- Weekday Headers -->
+        <div class="calendar-grid text-center font-semibold text-sm sm:text-base text-gray-500 mb-2">
+            <div>SUN</div>
+            <div>MON</div>
+            <div>TUE</div>
+            <div>WED</div>
+            <div>THU</div>
+            <div>FRI</div>
+            <div>SAT</div>
+        </div>
+
+        <!-- Calendar Grid (Dates) -->
+        <div id="calendar-dates" class="calendar-grid">
+            <!-- Date cells will be injected here by JavaScript -->
+            <div class="col-span-7 text-center p-8 text-gray-400" id="loading-indicator">Loading Calendar...</div>
+        </div>
+        
+    </div>
     
+    <!-- Event Details Modal (Hidden by default) -->
+    <div id="event-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden transition-opacity duration-300">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-11/12 max-w-lg">
+            <h3 class="text-2xl font-bold text-primary mb-4" id="modal-date-display">Events for:</h3>
+            <div id="event-list" class="space-y-3 max-h-60 overflow-y-auto pr-2 mb-4">
+                <!-- Events will be populated here -->
+                <p class="text-gray-500" id="no-events-message">No events planned for this day.</p>
+            </div>
+            
+            <form id="add-event-form" class="space-y-3 border-t pt-4 mt-4">
+                <h4 class="text-xl font-semibold text-text-dark">Add New Event</h4>
+                <input type="hidden" id="modal-selected-date">
+                
+                <!-- Event Title -->
+                <input type="text" id="event-title" placeholder="Event Title (e.g., Team Meeting)" required
+                       class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition-colors">
+
+                <!-- NEW: Start Time and End Time Inputs -->
+                <div class="flex space-x-3">
+                    <input type="time" id="event-start-time" value="09:00" required
+                           class="w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition-colors">
+                    <input type="time" id="event-end-time" value="10:00" required
+                           class="w-1/2 p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition-colors">
+                </div>
+                
+                <!-- Event Description -->
+                <textarea id="event-description" placeholder="Description (Optional)" rows="2"
+                          class="w-full p-2 border border-gray-300 rounded-lg focus:ring-primary focus:border-primary transition-colors"></textarea>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" id="close-modal" class="px-4 py-2 bg-gray-200 text-text-dark rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                        Close
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-primary text-text-light rounded-lg hover:bg-secondary transition-colors font-medium">
+                        Save Event
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+
+    <script type="module">
+        // --- FIREBASE INITIALIZATION AND CONFIGURATION ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, query, where, onSnapshot, addDoc, deleteDoc, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // IMPORTANT: Global variables are provided by the Canvas environment
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // Set Firebase logging level (useful for debugging)
+        setLogLevel('debug');
+
+        let currentUserId = null;
+        // Updated event structure to include time
+        let events = {}; // Store events: { 'YYYY-MM-DD': [{ id, title, description, date, startTime, endTime }, ...] }
+
+        // Global state for the current month being viewed
+        let currentDate = new Date();
+        const today = new Date(); // Constant for highlighting the current day
+
+        // DOM Element references
+        const userIdDisplay = document.getElementById('user-id-display');
+        const monthYearDisplay = document.getElementById('month-year-display');
+        const calendarDates = document.getElementById('calendar-dates');
+        const prevButton = document.getElementById('prev-month');
+        const nextButton = document.getElementById('next-month');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        
+        // Modal references
+        const eventModal = document.getElementById('event-modal');
+        const closeModalButton = document.getElementById('close-modal');
+        const addEventForm = document.getElementById('add-event-form');
+        const modalDateDisplay = document.getElementById('modal-date-display');
+        const modalSelectedDate = document.getElementById('modal-selected-date');
+        const eventListContainer = document.getElementById('event-list');
+        const noEventsMessage = document.getElementById('no-events-message');
+        const eventTitleInput = document.getElementById('event-title');
+        const eventDescriptionInput = document.getElementById('event-description');
+        // NEW: Time inputs
+        const eventStartTimeInput = document.getElementById('event-start-time');
+        const eventEndTimeInput = document.getElementById('event-end-time');
+
+
+        // --- FIREBASE AUTHENTICATION ---
+
+        async function initAuth() {
+            try {
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                // Wait for the auth state to be established
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        currentUserId = user.uid;
+                        userIdDisplay.textContent = currentUserId;
+                        console.log("Authenticated with user ID:", currentUserId);
+                        
+                        // Once authenticated, start listening for data
+                        startListeningForEvents();
+                        renderCalendar(); // Initial render with data
+                    } else {
+                        currentUserId = 'anonymous';
+                        userIdDisplay.textContent = currentUserId + ' (Anon)';
+                        console.log("Signed in anonymously.");
+                        renderCalendar(); // Render even if anonymous
+                    }
+                });
+
+            } catch (error) {
+                console.error("Firebase Auth Error:", error);
+                userIdDisplay.textContent = 'ERROR';
+                alertUser("Authentication failed. Check console for details.");
+            }
+        }
+        
+        // --- FIREBASE FIRESTORE OPERATIONS ---
+
+        // Get the path to the user's private events collection
+        function getEventsCollectionRef() {
+            if (!currentUserId) return null;
+            // Path: /artifacts/{appId}/users/{userId}/events
+            return collection(db, `artifacts/${appId}/users/${currentUserId}/events`);
+        }
+
+        // Real-time listener for events (runs once upon auth, then listens for changes)
+        function startListeningForEvents() {
+            const eventsRef = getEventsCollectionRef();
+            if (!eventsRef) return;
+
+            // Simple query to get all events (we'll filter and organize them locally)
+            const q = query(eventsRef);
+
+            onSnapshot(q, (snapshot) => {
+                loadingIndicator.classList.add('hidden'); // Hide loading once data starts flowing
+                
+                // Reset the local events structure
+                events = {};
+                
+                snapshot.forEach((doc) => {
+                    const eventData = doc.data();
+                    const dateKey = eventData.date; // Should be in 'YYYY-MM-DD' format
+                    
+                    if (dateKey) {
+                        if (!events[dateKey]) {
+                            events[dateKey] = [];
+                        }
+                        // Add the event with its document ID and new time fields
+                        events[dateKey].push({
+                            id: doc.id,
+                            title: eventData.title,
+                            description: eventData.description,
+                            date: dateKey, // Keep the date key for easy reference
+                            startTime: eventData.startTime || null, // NEW
+                            endTime: eventData.endTime || null,     // NEW
+                        });
+                    }
+                });
+
+                console.log("Events loaded/updated:", events);
+                renderCalendar(); // Re-render the calendar to show new event dots
+            }, (error) => {
+                console.error("Firestore listen error:", error);
+                alertUser("Error loading events. Please check the console.");
+            });
+        }
+        
+        /**
+         * Saves a new event to Firestore.
+         * @param {string} dateKey - The date in 'YYYY-MM-DD' format.
+         * @param {string} title - The event title.
+         * @param {string} description - The event description.
+         * @param {string} startTime - The event start time (e.g., "09:00").
+         * @param {string} endTime - The event end time (e.g., "10:00").
+         */
+        async function saveEvent(dateKey, title, description, startTime, endTime) {
+            const eventsRef = getEventsCollectionRef();
+            if (!eventsRef || !currentUserId) {
+                alertUser("Authentication is required to save events.");
+                return;
+            }
+
+            try {
+                await addDoc(eventsRef, {
+                    date: dateKey,
+                    title: title,
+                    description: description,
+                    startTime: startTime, // NEW
+                    endTime: endTime,     // NEW
+                    createdAt: new Date(),
+                    userId: currentUserId 
+                });
+                console.log("Event saved successfully for date:", dateKey);
+                
+                // Clear and hide modal after successful save
+                eventTitleInput.value = '';
+                eventDescriptionInput.value = '';
+                closeModal();
+                
+            } catch (e) {
+                console.error("Error adding document: ", e);
+                alertUser("Could not save event. Check console for details.");
+            }
+        }
+        
+        /**
+         * Deletes an event from Firestore.
+         * @param {string} eventId - The document ID of the event to delete.
+         */
+        async function deleteEvent(eventId) {
+            const eventsRef = getEventsCollectionRef();
+            if (!eventsRef) return;
+
+            try {
+                // Path: /artifacts/{appId}/users/{userId}/events/{eventId}
+                const eventDocRef = doc(eventsRef, eventId);
+                await deleteDoc(eventDocRef);
+                console.log("Event deleted successfully:", eventId);
+                
+                // Re-render the modal content to reflect the deletion immediately
+                const dateKey = modalSelectedDate.value;
+                if (dateKey) {
+                    showEventsForDate(dateKey);
+                } else {
+                    closeModal();
+                }
+
+            } catch (e) {
+                console.error("Error deleting document: ", e);
+                alertUser("Could not delete event. Check console for details.");
+            }
+        }
+
+        // --- CALENDAR RENDERING LOGIC ---
+
+        /**
+         * Renders the calendar grid for the current month in the global currentDate state.
+         */
+        function renderCalendar() {
+            // Show loading if events haven't been loaded yet
+            if (loadingIndicator.classList.contains('hidden')) {
+                calendarDates.innerHTML = '';
+            } else {
+                return; // Wait for data to load
+            }
+
+            // 1. Calculate key dates for the current view month
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+
+            // Display the current month and year
+            monthYearDisplay.textContent = currentDate.toLocaleString('en-US', {
+                month: 'long',
+                year: 'numeric'
+            });
+
+            // Get the first day of the month (used to find the start day of the week, 0=Sunday)
+            const firstDayOfMonth = new Date(year, month, 1).getDay();
+            // Get the number of days in the month (by asking for day 0 of the next month)
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+            // 2. Add padding for the previous month's days (empty cells)
+            for (let i = 0; i < firstDayOfMonth; i++) {
+                // Create an empty, non-interactive cell
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'date-cell text-center p-1 sm:p-2 flex justify-center items-center';
+                calendarDates.appendChild(emptyCell);
+            }
+
+            // 3. Add the actual days of the current month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDate = new Date(year, month, day);
+
+                // Format date as YYYY-MM-DD for key lookup
+                const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dayEvents = events[dateKey] || [];
+                const hasEvents = dayEvents.length > 0;
+
+                // Check if this day is TODAY
+                const isToday = dayDate.toDateString() === today.toDateString();
+
+                // Base classes for all date cells
+                let cellClasses = 'date-cell cursor-pointer rounded-lg transition-all duration-150 relative border border-gray-100';
+                let numberClasses = 'absolute top-2 left-2 text-sm sm:text-base font-medium';
+
+                if (isToday) {
+                    // Highlight for the current day
+                    cellClasses += ' bg-primary text-text-light shadow-md border-primary hover:bg-primary/90';
+                    numberClasses = 'absolute top-2 left-2 text-sm sm:text-base font-bold text-white';
+                } else {
+                    // Standard day
+                    cellClasses += ' bg-white text-text-dark hover:scale-[1.02] hover:bg-primary/10';
+                    if (hasEvents) {
+                        cellClasses += ' border-amber-300 shadow-sm';
+                    }
+                }
+                
+                // Day cell container
+                const cell = document.createElement('div');
+                cell.className = cellClasses;
+                
+                // Attach date key and click handler
+                cell.setAttribute('data-date', dateKey);
+                cell.onclick = () => showEventsForDate(dateKey);
+                
+                // Day number display (positioned top-left)
+                const dayNumberContainer = document.createElement('span');
+                dayNumberContainer.className = numberClasses;
+                dayNumberContainer.textContent = day;
+
+                // Event indicator dot
+                if (hasEvents) {
+                    const dot = document.createElement('div');
+                    dot.className = 'event-dot';
+                    cell.appendChild(dot);
+                }
+
+                // Create inner content wrapper to manage date number position
+                const innerWrapper = document.createElement('div');
+                innerWrapper.className = 'date-number'; 
+
+                innerWrapper.appendChild(dayNumberContainer);
+                cell.appendChild(innerWrapper);
+                calendarDates.appendChild(cell);
+            }
+        }
+
+        // --- NAVIGATION AND MODAL HANDLERS ---
+        
+        /**
+         * Displays the modal with events for the selected date.
+         * @param {string} dateKey - The date in 'YYYY-MM-DD' format.
+         */
+        function showEventsForDate(dateKey) {
+            const [year, month, day] = dateKey.split('-').map(Number);
+            const displayDate = new Date(year, month - 1, day).toLocaleDateString('en-US', {
+                weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
+            });
+            
+            const dayEvents = events[dateKey] || [];
+            
+            // 1. Update Modal Header and Hidden Input
+            modalDateDisplay.textContent = `Events for: ${displayDate}`;
+            modalSelectedDate.value = dateKey;
+            
+            // 2. Clear existing events and populate list
+            eventListContainer.innerHTML = '';
+            
+            if (dayEvents.length === 0) {
+                noEventsMessage.classList.remove('hidden');
+                eventListContainer.appendChild(noEventsMessage);
+            } else {
+                noEventsMessage.classList.add('hidden');
+                
+                // Sort events by start time (if available)
+                dayEvents.sort((a, b) => {
+                    if (a.startTime && b.startTime) {
+                        return a.startTime.localeCompare(b.startTime);
+                    }
+                    return 0; // Don't sort if times are missing
+                });
+
+                dayEvents.forEach(event => {
+                    const eventItem = document.createElement('div');
+                    eventItem.className = 'bg-gray-100 p-3 rounded-lg flex justify-between items-start border-l-4 border-primary';
+                    
+                    // NEW: Time display logic
+                    const timeDisplay = event.startTime && event.endTime 
+                        ? `<p class="text-sm font-mono text-primary/80 mb-1">${event.startTime} - ${event.endTime}</p>`
+                        : '';
+
+                    eventItem.innerHTML = `
+                        <div>
+                            ${timeDisplay}
+                            <p class="font-semibold text-text-dark">${event.title}</p>
+                            ${event.description ? `<p class="text-sm text-gray-600">${event.description}</p>` : ''}
+                        </div>
+                        <button class="text-red-500 hover:text-red-700 ml-4 p-1 rounded transition-colors" data-event-id="${event.id}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                        </button>
+                    `;
+                    eventListContainer.appendChild(eventItem);
+                });
+                
+                // Attach delete listeners
+                eventListContainer.querySelectorAll('button').forEach(button => {
+                    button.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteEvent(button.getAttribute('data-event-id'));
+                    };
+                });
+            }
+            
+            // 3. Show the modal
+            eventModal.classList.remove('hidden', 'opacity-0');
+            eventModal.classList.add('opacity-100');
+        }
+
+        function closeModal() {
+            eventModal.classList.remove('opacity-100');
+            eventModal.classList.add('opacity-0');
+            // Wait for transition before hiding completely
+            setTimeout(() => {
+                eventModal.classList.add('hidden');
+                eventTitleInput.value = '';
+                eventDescriptionInput.value = '';
+                // Reset time inputs to default values
+                eventStartTimeInput.value = '09:00';
+                eventEndTimeInput.value = '10:00';
+            }, 300); 
+        }
+
+        /**
+         * Navigation logic: Moves to the previous month.
+         */
+        function goToPrevMonth() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        }
+
+        /**
+         * Navigation logic: Moves to the next month.
+         */
+        function goToNextMonth() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        }
+        
+        // Custom replacement for alert()
+        function alertUser(message) {
+            console.error('USER ALERT:', message);
+            // In a real application, you'd use a small, non-blocking toast notification here.
+            // For now, we'll log and display a temporary message in the header (or an elegant modal).
+            monthYearDisplay.textContent = `⚠️ ${message}`;
+            setTimeout(() => {
+                renderCalendar();
+            }, 3000);
+        }
+
+        // --- GLOBAL EVENT LISTENERS ---
+
+        prevButton.addEventListener('click', goToPrevMonth);
+        nextButton.addEventListener('click', goToNextMonth);
+        closeModalButton.addEventListener('click', closeModal);
+        
+        // Submit handler for the Add Event form
+        addEventForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const dateKey = modalSelectedDate.value;
+            const title = eventTitleInput.value.trim();
+            const description = eventDescriptionInput.value.trim();
+            const startTime = eventStartTimeInput.value.trim();
+            const endTime = eventEndTimeInput.value.trim();
+            
+            if (dateKey && title && startTime && endTime) {
+                // Check for basic time validity (start must be before end)
+                if (startTime >= endTime) {
+                     alertUser("Start time must be before end time.");
+                     return;
+                }
+
+                saveEvent(dateKey, title, description, startTime, endTime);
+            } else {
+                alertUser("Event title, start time, and end time are required.");
+            }
+        });
+
+        // --- INITIALIZATION ---
+        
+        window.onload = function() {
+            // Start the authentication and data loading process
+            initAuth();
+        };
+
+    </script>
+</body>
+</html>
