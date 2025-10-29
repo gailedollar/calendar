@@ -25,7 +25,7 @@
         }
     </script>
     <!-- Embed Inter font (highly recommended for modern design) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght=400;600;700&display=swap" rel="stylesheet">
     <!-- Custom styles for the calendar grid -->
     <style>
         .calendar-grid {
@@ -352,13 +352,10 @@
          * Renders the calendar grid for the current month in the global currentDate state.
          */
         function renderCalendar() {
-            // Show loading if events haven't been loaded yet
-            if (loadingIndicator.classList.contains('hidden')) {
-                calendarDates.innerHTML = '';
-            } else {
-                return; // Wait for data to load
-            }
-
+            // FIX: Ensure the calendar content is cleared, even if the loading indicator is still technically visible.
+            // The loading indicator is visually hidden by the onSnapshot listener when data is received.
+            calendarDates.innerHTML = '';
+            
             // 1. Calculate key dates for the current view month
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth();
